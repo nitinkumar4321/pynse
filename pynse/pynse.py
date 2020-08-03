@@ -110,7 +110,7 @@ class Nse:
         self.data_root = {'data_root': path}
         self.data_root.update({d: f'{self.data_root["data_root"]}{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
-                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery']})
+                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading']})
         self.__symbol_files = {i.name: f"{self.data_root['symbol_list']}{i.name}.pkl" for i in IndexSymbol}
         self.__zero_files = {i.name: f"{f'{os.path.split(__file__)[0]}/symbol_list/'}{i.name}.pkl" for i in IndexSymbol}
         self.__startup()
@@ -827,7 +827,7 @@ class Nse:
             logger.debug(f'read {filename} from disk')
         else:
             config = self.__urls
-            url = config['path']['equity_stock_watch']
+            url = config['host'] + config['path']['equity_stock_watch']
             csv = self.__get_resp(url).content.decode('utf8').replace(" ", "")
             eq_stock_watch = pd.read_csv(io.StringIO(csv))
             eq_stock_watch.columns = list(map((lambda x: x.replace('\n',' ').strip()), eq_stock_watch.columns))
@@ -871,3 +871,25 @@ class Nse:
             daily_delivery.to_pickle(filename)
 
         return daily_delivery
+
+    def insider_trading(self, from_date=None, to_date=None):
+        config = self.__urls
+        if from_date == None:
+            from_date = dt.date.today() - dt.timedelta(days=100)
+        if to_date == None:
+            to_date = dt.date.today()
+
+        filename = f'{self.data_root["insider_trading"]}insider_trading_{from_date}_to_{to_date}.pkl'
+        insider_trading = None
+        if os.path.exists(filename):
+            insider_trading = pd.read_pickle(filename)
+            logger.debug(f'read {filename} from disk')
+        else:
+            insider_trading = pd.DataFrame()
+            url = config['host'] + config['path']['insider_trading'].format(from_date=from_date.strftime('%d-%m-%Y'),
+                                                                 to_date=to_date.strftime('%d-%m-%Y'))
+            data = self.__get_resp(url).json()
+            insider_trading = pd.DataFrame(data['data'])
+            insider_trading.drop(['xbrl', 'tkdAcqm', 'anex', 'derivativeType', 'remarks'], axis=1, inplace=True)
+            insider_trading.to_pickle(filename)
+        return insider_trading
