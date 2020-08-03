@@ -101,7 +101,7 @@ class Nse:
 
     """
 
-    def __init__(self,path:str='data/'):
+    def __init__(self, path:str='data/'):
         self.expiry_list = list()
         self.strike_list = list()
         self.max_retries = 5
@@ -110,7 +110,7 @@ class Nse:
         self.data_root = {'data_root': path}
         self.data_root.update({d: f'{self.data_root["data_root"]}{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
-                                'fii_dii', 'config']})
+                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery']})
         self.__symbol_files = {i.name: f"{self.data_root['symbol_list']}{i.name}.pkl" for i in IndexSymbol}
         self.__zero_files = {i.name: f"{f'{os.path.split(__file__)[0]}/symbol_list/'}{i.name}.pkl" for i in IndexSymbol}
         self.__startup()
@@ -596,13 +596,13 @@ class Nse:
         hist.set_index('Date', inplace=True)
         hist.drop(['series', 'PREV.CLOSE', 'ltp', 'vwap', '52WH', '52WL', 'VALUE', 'Nooftrades'], axis=1, inplace=True)
         try:
-            hist.columns = ['open', 'high', 'low', 'close', 'volume']
+            hist.columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         except Exception as e:
             print(hist.columns, e)
             time.sleep(5)
         for column in hist.columns[:4]:
             hist[column] = hist[column].astype(str).str.replace(',', '').replace('-', '0').astype(float)
-        hist['volume'] = hist['volume'].astype(int)
+        hist['Volume'] = hist['Volume'].astype(int)
         return hist
 
     def __get_hist_index(self, symbol='NIFTY 50', from_date=None,
@@ -806,3 +806,68 @@ class Nse:
         losers = losers[losers.pChange < 0.]
 
         return losers
+
+    def eq_stock_watch(self) -> pd.DataFrame:
+        """
+        download Equity Stock Watch from nse
+        or
+        read eq_stock_watch if already downloaded
+
+        Examples
+        --------
+
+        >>> nse.eq_stock_watch()
+
+        """
+        req_date = self.__trading_days()[-1].date()
+        filename = f'{self.data_root["eq_stock_watch"]}eq_stock_watch_{req_date}.pkl'
+        eq_stock_watch = None
+        if os.path.exists(filename):
+            eq_stock_watch = pd.read_pickle(filename)
+            logger.debug(f'read {filename} from disk')
+        else:
+            config = self.__urls
+            url = config['path']['equity_stock_watch']
+            csv = self.__get_resp(url).content.decode('utf8').replace(" ", "")
+            eq_stock_watch = pd.read_csv(io.StringIO(csv))
+            eq_stock_watch.columns = list(map((lambda x: x.replace('\n',' ').strip()), eq_stock_watch.columns))
+            logger.debug("downloading eq_stock_watch for {}".format(req_date))
+            eq_stock_watch.set_index('SYMBOL', inplace=True)
+            eq_stock_watch.dropna(axis=1, inplace=True)
+            eq_stock_watch.to_pickle(filename)
+
+        return eq_stock_watch
+
+    def daily_delivery(self, req_date: dt.date = None) -> pd.DataFrame:
+        """
+        download Daily delivery from nse
+        or
+        read daily_delivery if already downloaded
+
+        Examples
+        --------
+
+        >>> nse.daily_delivery()
+
+        >>> nse.daily_delivery(dt.date(2020,7,20))
+
+        """
+        req_date = self.__trading_days()[-1].date() if req_date is None else req_date
+        filename = f'{self.data_root["daily_delivery"]}daily_delivery_{req_date}.pkl'
+        daily_delivery = None
+        if os.path.exists(filename):
+            daily_delivery = pd.read_pickle(filename)
+            logger.debug(f'read {filename} from disk')
+        else:
+            config = self.__urls
+            url = config['path']['daily_delivery'].format(date=req_date.strftime("%d%m%Y").upper())
+            csv = self.__get_resp(url).content.decode('utf8').replace(" ", "")
+            daily_delivery = pd.read_csv(io.StringIO(csv), skiprows=3, index_col=False)
+            daily_delivery.columns = list(map((lambda x: x.strip()), daily_delivery.columns))
+            daily_delivery.rename(columns={'NameofSecurity':'SYMBOL'}, inplace=True)
+            logger.debug("downloading daily_delivery for {}".format(req_date))
+            daily_delivery.set_index('SYMBOL', inplace=True)
+            daily_delivery.dropna(axis=1, inplace=True)
+            daily_delivery.to_pickle(filename)
+
+        return daily_delivery
