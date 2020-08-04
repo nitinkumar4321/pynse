@@ -110,7 +110,7 @@ class Nse:
         self.data_root = {'data_root': path}
         self.data_root.update({d: f'{self.data_root["data_root"]}{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
-                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading']})
+                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading', 'corp_info']})
         self.__symbol_files = {i.name: f"{self.data_root['symbol_list']}{i.name}.pkl" for i in IndexSymbol}
         self.__zero_files = {i.name: f"{f'{os.path.split(__file__)[0]}/symbol_list/'}{i.name}.pkl" for i in IndexSymbol}
         self.__startup()
@@ -893,3 +893,28 @@ class Nse:
             insider_trading.drop(['xbrl', 'tkdAcqm', 'anex', 'derivativeType', 'remarks'], axis=1, inplace=True)
             insider_trading.to_pickle(filename)
         return insider_trading
+
+    def corp_info(self, symbol: str = 'SBIN', month=None):
+        config = self.__urls
+        corp_info = {}
+        if month == None:
+            month = dt.date.today().strftime('%B')
+        if symbol is not None:
+            filename = f'{self.data_root["corp_info"]}corp_info_{symbol}_{month}.pkl'
+            if os.path.exists(filename):
+                with open(filename, 'rb') as pk:
+                    corp_info = pickle.load(pk)
+                logger.debug(f'read {filename} from disk')
+            else:
+                logger.info(f"downloading corp data for {symbol}")
+                symbol = self.__validate_symbol(symbol,
+                                                self.symbols[IndexSymbol.All.name] + [idx.value for idx in IndexSymbol])
+                url = config['host'] + config['path']['corp_info'].format(symbol=symbol)
+                data = self.__get_resp(url).json()
+                corp_info['share_holding_patterns'] = pd.DataFrame(data['corporate']['shareholdingPatterns']['data'])
+                corp_info['financial_results'] = pd.DataFrame(data['corporate']['financialResults'])
+                corp_info['pledge_details'] = pd.DataFrame(data['corporate']['pledgedetails'])
+                corp_info['sast_Regulations_29'] = pd.DataFrame(data['corporate']['sastRegulations_29'])
+                with open(filename, 'wb') as pk:
+                    pickle.dump(corp_info, pk, protocol=pickle.HIGHEST_PROTOCOL)
+        return corp_info
