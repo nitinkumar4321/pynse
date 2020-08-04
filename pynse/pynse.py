@@ -110,7 +110,8 @@ class Nse:
         self.data_root = {'data_root': path}
         self.data_root.update({d: f'{self.data_root["data_root"]}{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
-                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading', 'corp_info']})
+                                'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading',
+                                'corp_info']})
         self.__symbol_files = {i.name: f"{self.data_root['symbol_list']}{i.name}.pkl" for i in IndexSymbol}
         self.__zero_files = {i.name: f"{f'{os.path.split(__file__)[0]}/symbol_list/'}{i.name}.pkl" for i in IndexSymbol}
         self.__startup()
@@ -872,7 +873,17 @@ class Nse:
 
         return daily_delivery
 
-    def insider_trading(self, from_date=None, to_date=None):
+    def insider_trading(self, from_date=None, to_date=None) -> pd.DataFrame:
+        """
+        download Insider trading from nse
+        or
+        read insider_trading if already downloaded
+
+        Examples
+        --------
+        >>> nse.insider_trading()
+        >>> nse.insider_trading(to_date=dt.date(2020, 8, 3)
+        """
         config = self.__urls
         if from_date == None:
             from_date = dt.date.today() - dt.timedelta(days=100)
@@ -895,6 +906,17 @@ class Nse:
         return insider_trading
 
     def corp_info(self, symbol: str = 'SBIN', month=None):
+        """
+        download Corporation Info from nse
+        or
+        read corp_info if already downloaded
+
+        Examples
+        --------
+        >>> nse.corp_info()
+        >>> nse.corp_info(symbol='SBIN', month=dt.date.today().strftime('%B'))
+
+        """
         config = self.__urls
         corp_info = {}
         if month == None:
