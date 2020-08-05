@@ -905,7 +905,7 @@ class Nse:
             insider_trading.to_pickle(filename)
         return insider_trading
 
-    def corp_info(self, symbol: str = 'SBIN', month=None):
+    def corp_info(self, symbol: str = 'SBIN', month=None, use_pickle=True):
         """
         download Corporation Info from nse
         or
@@ -915,6 +915,7 @@ class Nse:
         --------
         >>> nse.corp_info()
         >>> nse.corp_info(symbol='SBIN', month=dt.date.today().strftime('%B'))
+        >>> nse.corp_info(symbol='SBIN', use_pickle=False) #Use on prod
 
         """
         config = self.__urls
@@ -923,7 +924,7 @@ class Nse:
             month = dt.date.today().strftime('%B')
         if symbol is not None:
             filename = f'{self.data_root["corp_info"]}corp_info_{symbol}_{month}.pkl'
-            if os.path.exists(filename):
+            if use_pickle and os.path.exists(filename):
                 with open(filename, 'rb') as pk:
                     corp_info = pickle.load(pk)
                 logger.debug(f'read {filename} from disk')
@@ -937,6 +938,7 @@ class Nse:
                 corp_info['financial_results'] = pd.DataFrame(data['corporate']['financialResults'])
                 corp_info['pledge_details'] = pd.DataFrame(data['corporate']['pledgedetails'])
                 corp_info['sast_Regulations_29'] = pd.DataFrame(data['corporate']['sastRegulations_29'])
-                with open(filename, 'wb') as pk:
-                    pickle.dump(corp_info, pk, protocol=pickle.HIGHEST_PROTOCOL)
+                if use_pickle:
+                    with open(filename, 'wb') as pk:
+                        pickle.dump(corp_info, pk, protocol=pickle.HIGHEST_PROTOCOL)
         return corp_info
