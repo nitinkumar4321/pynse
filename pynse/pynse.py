@@ -111,7 +111,7 @@ class Nse:
         self.data_root.update({d: f'{self.data_root["data_root"]}/{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
                                 'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading',
-                                'corp_info']})
+                                'corp_info', 'screen_shots']})
         self.__symbol_files = {i.name: f"{self.data_root['symbol_list']}{i.name}.pkl" for i in IndexSymbol}
         self.__zero_files = {i.name: f"{f'{os.path.split(__file__)[0]}/symbol_list/'}{i.name}.pkl" for i in IndexSymbol}
         self.__startup()
