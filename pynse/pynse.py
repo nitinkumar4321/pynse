@@ -101,14 +101,14 @@ class Nse:
 
     """
 
-    def __init__(self, path:str='data/'):
+    def __init__(self, path:str='data'):
         self.expiry_list = list()
         self.strike_list = list()
         self.max_retries = 5
         self.timeout = 10
         self.__urls, self.__wrls = dict(), list()
         self.data_root = {'data_root': path}
-        self.data_root.update({d: f'{self.data_root["data_root"]}{d}/' for d in
+        self.data_root.update({d: f'{self.data_root["data_root"]}/{d}/' for d in
                                ['bhavcopy_eq', 'bhavcopy_fno', 'option_chain', 'symbol_list', 'pre_open', 'hist',
                                 'fii_dii', 'config', 'eq_stock_watch', 'daily_delivery', 'insider_trading',
                                 'corp_info']})
@@ -443,7 +443,7 @@ class Nse:
 
     def __option_chain_download(self, symbol):
         symbol = self.__validate_symbol(symbol, self.symbols[IndexSymbol.FnO.name] + ['NIFTY', 'BANKNIFTY', 'NIFTYIT'])
-        logger.debug(f'download option chain')
+        logger.debug('download option chain')
         config = self.__urls
         url = config['host'] + (config['path']['option_chain_index'] if 'NIFTY' in symbol else config['path'][
             'option_cahin_equities']).format(symbol=symbol)
