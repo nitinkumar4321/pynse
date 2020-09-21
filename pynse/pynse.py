@@ -126,7 +126,12 @@ class Nse:
         for nrt in range(retries):
             try:
                 time.sleep(5)
-                response = requests.get(url, headers=self.__headers, timeout=timeout)
+                # response = requests.get(url, headers=self.__headers, timeout=timeout)
+				
+				# Fix for new session
+				session = requests.Session()
+                response = session.get("http://nseindia.com", headers=self.__headers)
+                response = session.get(url, headers=self.__headers, timeout=timeout)
             except Exception as e:
                 logger.error(e)
                 if nrt + 1 == retries:
