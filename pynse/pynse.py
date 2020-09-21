@@ -127,9 +127,9 @@ class Nse:
             try:
                 time.sleep(5)
                 # response = requests.get(url, headers=self.__headers, timeout=timeout)
-				
-				# Fix for new session
-				session = requests.Session()
+                
+                # Fix for new NSE session issue
+                session = requests.Session()
                 response = session.get("http://nseindia.com", headers=self.__headers)
                 response = session.get(url, headers=self.__headers, timeout=timeout)
             except Exception as e:
